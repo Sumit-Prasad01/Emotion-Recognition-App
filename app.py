@@ -4,15 +4,19 @@ import re
 import pickle
 import nltk
 from nltk.stem import PorterStemmer
+import tensorflow
+from tensorflow.keras.models import load_model
+
+
 
 # Download stopwords (once)
 nltk.download('stopwords')
 stopwords = set(nltk.corpus.stopwords.words('english'))
 
 # ============================ Load Models ============================================
-model = pickle.load(open('logistic_regresion.pkl', 'rb'))  # Use RandomForestClassifier if you saved it
-tfidf_vectorizer = pickle.load(open('tfidf_vectorizer.pkl', 'rb'))
-label_encoder = pickle.load(open('label_encoder.pkl', 'rb'))
+model = load_model("models/LSTM_Model.keras") 
+tfidf_vectorizer = pickle.load(open('models/tfidf_vectorizer.pkl', 'rb'))
+label_encoder = pickle.load(open('models/lb1.pkl', 'rb'))
 
 # ============================ Text Preprocessing =====================================
 def clean_text(text):
@@ -26,16 +30,11 @@ def clean_text(text):
 def predict_emotion(input_text):
     cleaned_text = clean_text(input_text)
     input_vectorized = tfidf_vectorizer.transform([cleaned_text])
-    
-    predicted_class = model.predict(input_vectorized)[0]
-    predicted_emotion = label_encoder.inverse_transform([predicted_class])[0]
 
-    # Confidence score (probability)
-    if hasattr(model, "predict_proba"):
-        probs = model.predict_proba(input_vectorized)[0]
-        confidence = np.max(probs)
-    else:
-        confidence = None  # If model doesn't support probabilities
+    probs = model.predict(input_vectorized)[0]              
+    predicted_index = np.argmax(probs)                     
+    predicted_emotion = label_encoder.inverse_transform([predicted_index])[0]
+    confidence = float(np.max(probs))                       
 
     return predicted_emotion, confidence
 
